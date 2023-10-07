@@ -1,0 +1,112 @@
+---
+title: "Lab 2 Challenge"
+author: "Jen McGregor"
+date: "10/1/2021"
+output:
+  prettydoc::html_pretty:
+  theme: hpstr
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Use the dataset to suggest a track listing (11 song titles) for Aubrey’s next album with the Biebs. Explain your thought process and corresponding code.**
+
+**Track List:** 
+1. feel me
+2. off the hook
+3. what it do
+4. hella
+5. boo
+6. finna
+7. What it is?
+8. ashy
+9. ballin'
+10. make it rain
+11. player hater
+
+**Thought Process:** Songs on a collaboration between Drake and Justin Bieber should contain words that are familiar to *both* fan bases. To distinguish a participant as a fan for either artist, I filtered the dataset by participants whose score in 'bieber' was above the mean. An additional filter was added for participants whose 'hip hop' score was above the mean, as that is the genre of music Drake produces. Once these filters were in place I ranked the words tested in descending order by mean familiarity score and selected the top 11 words. 
+
+
+```{r,include=FALSE}
+library(tidyverse)
+hiphop <- read_csv("hiphop.csv")
+
+##changing variable type
+#response/dependent variable
+
+hiphop$familiarity <- as.numeric(hiphop$familiarity)
+hiphop$fam1 <- as.numeric(hiphop$fam1)
+
+#demographic variables
+hiphop$male <- ifelse(hiphop$sex == 'Male', 1, 0)
+hiphop$female <- ifelse(hiphop$sex == 'Female',1,0)
+hiphop$age <- as.numeric(hiphop$age)
+hiphop$ethnic <- as.factor(hiphop$ethnic)
+hiphop$city <- as.numeric(hiphop$city)
+hiphop$county <- as.numeric(hiphop$county)
+hiphop$countyBlack <- as.numeric(hiphop$countyBlack)
+
+#social network variables
+
+hiphop$asianMove <- as.numeric(hiphop$asianMove)
+hiphop$blackMove <- as.numeric(hiphop$blackMove)
+hiphop$hispanicMove <- as.numeric(hiphop$hispanicMove)
+hiphop$nativeMove <- as.numeric(hiphop$nativeMove)
+hiphop$SAAMEMove <- as.numeric(hiphop$SAAMEMove)
+hiphop$whiteMove <- as.numeric(hiphop$whiteMove)
+hiphop$blackWeekly <- as.numeric(hiphop$blackWeekly)
+
+
+#music variables
+
+hiphop$intl <- as.numeric(hiphop$intl)
+hiphop$vocal <- as.numeric(hiphop$vocal)
+hiphop$classical <- as.numeric(hiphop$classical)
+hiphop$folk <- as.numeric(hiphop$folk)
+hiphop$rock <- as.numeric(hiphop$rock)
+hiphop$country <- as.numeric(hiphop$country)
+hiphop$pop <- as.numeric(hiphop$pop)
+hiphop$alternative <- as.numeric(hiphop$pop)
+hiphop$hiphop <- as.numeric(hiphop$hiphop)
+hiphop$unclassifiable <- as.numeric(hiphop$unclassifiable)
+
+hiphop$numOverallArtists <- as.numeric(hiphop$numOverallArtists)
+hiphop$numPreferredArtists <- as.numeric(hiphop$numPreferredArtists)
+hiphop$popularityScore <- as.numeric(hiphop$popularityScore)
+
+#pop culture variables
+hiphop$jayz <- as.factor(hiphop$jayz)
+hiphop$barkley <- as.factor(hiphop$barkley)
+hiphop$boondocks <- as.factor(hiphop$boondocks)
+hiphop$monique <- as.factor(hiphop$monique)
+hiphop$bieber <- as.numeric(hiphop$bieber)
+
+#experimental types
+hiphop$trial <- as.factor(hiphop$trial)
+
+
+```
+
+
+
+```{r}
+
+summary(hiphop$bieber)
+summary(hiphop$hiphop)
+
+jb_drake_collab <- hiphop %>%
+  filter(bieber>2.33,hiphop>1.595) %>%
+  group_by(word) %>%
+  summarize(meanfamiliarity=mean(familiarity)) %>%
+  arrange(desc(meanfamiliarity)) %>%
+  top_n(11)
+```
+
+
+
+
+```
+

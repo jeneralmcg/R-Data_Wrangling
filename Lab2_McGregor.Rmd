@@ -1,0 +1,308 @@
+---
+title: "Lab 2"
+author: "Jen McGregor"
+date: "9/30/2021"
+output:
+  prettydoc::html_pretty:
+  theme: hpstr
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r,include=FALSE}
+library(tidyverse)
+hiphop <- read_csv("hiphop.csv")
+```
+
+# Assignment
+
+## Part 1: Summary
+
+**1. Provide a brief overview (2-4 sentences) of the dataset.**
+
+The hiphop dataset contains 10752 observations of 38 variables after moving each of the variable names to column heads. There are 11264 missing values missing from the dataset, with all of the missing values split evenly between the 'numPreferredArtists' and 'numOverallArtists' variables. 
+
+```{r summarize dataset, make column names from row2, include=FALSE}
+summary(hiphop)
+length(which(is.na(hiphop$numPreferredArtists)))
+length(which(is.na(hiphop$numOverallArtists)))
+```
+
+**2.Clean the dataset in whichever ways you see fit.**
+
+I decided to change most, if not, all of the variable types. The variables all came as categorical and I changed them for ease of future analysis. 
+```{r}
+##changing variable type
+#response/dependent variable
+
+hiphop$familiarity <- as.numeric(hiphop$familiarity)
+hiphop$fam1 <- as.numeric(hiphop$fam1)
+
+#demographic variables
+hiphop$male <- ifelse(hiphop$sex == 'Male', 1, 0)
+hiphop$female <- ifelse(hiphop$sex == 'Female',1,0)
+hiphop$ethnic <- as.factor(hiphop$ethnic)
+hiphop$city <- as.numeric(hiphop$city)
+hiphop$county <- as.numeric(hiphop$county)
+hiphop$countyBlack <- as.numeric(hiphop$countyBlack)
+
+#social network variables
+
+hiphop$asianMove <- as.numeric(hiphop$asianMove)
+hiphop$blackMove <- as.numeric(hiphop$blackMove)
+hiphop$hispanicMove <- as.numeric(hiphop$hispanicMove)
+hiphop$nativeMove <- as.numeric(hiphop$nativeMove)
+hiphop$SAAMEMove <- as.numeric(hiphop$SAAMEMove)
+hiphop$whiteMove <- as.numeric(hiphop$whiteMove)
+hiphop$blackWeekly <- as.numeric(hiphop$blackWeekly)
+
+
+#music variables
+
+hiphop$intl <- as.numeric(hiphop$intl)
+hiphop$vocal <- as.numeric(hiphop$vocal)
+hiphop$classical <- as.numeric(hiphop$classical)
+hiphop$folk <- as.numeric(hiphop$folk)
+hiphop$rock <- as.numeric(hiphop$rock)
+hiphop$country <- as.numeric(hiphop$country)
+hiphop$pop <- as.numeric(hiphop$pop)
+hiphop$alternative <- as.numeric(hiphop$pop)
+hiphop$hiphop <- as.numeric(hiphop$hiphop)
+hiphop$unclassifiable <- as.numeric(hiphop$unclassifiable)
+
+hiphop$numOverallArtists <- as.numeric(hiphop$numOverallArtists)
+hiphop$numPreferredArtists <- as.numeric(hiphop$numPreferredArtists)
+hiphop$popularityScore <- as.numeric(hiphop$popularityScore)
+
+#pop culture variables
+hiphop$jayz <- as.factor(hiphop$jayz)
+hiphop$barkley <- as.factor(hiphop$barkley)
+hiphop$boondocks <- as.factor(hiphop$boondocks)
+hiphop$monique <- as.factor(hiphop$monique)
+hiphop$bieber <- as.numeric(hiphop$bieber)
+
+#experimental types
+hiphop$trial <- as.factor(hiphop$trial)
+```
+
+**3. How many unique AAVE words were studied in this dataset?**
+
+64 unique AAVE words were studied in this dataset.
+```{r}
+hiphop %>%
+  distinct(word)
+```
+**4. Make a new variable that re-categorizes ethnic into only two groups, “white” and “non-white”, to simplify your data.**
+
+```{r}
+hiphop$white <- ifelse(hiphop$ethnic == 'white', "white", "non-white")
+```
+
+**5. What are the demographics of the people in this study? Investigate the variables sex, age, and ethnic and summarize your findings in 1-3 complete sentences.**
+
+Of the 168 subjects, 117 identify as female and 51 identify as male. The mean age of all of the participants was around 20, with a range of ages from 16 to 48. Out of the 168 subjects, 33 identify with ethnicities considered "non-white". 19 out of the 33 non-white participants identify as Asian, the largest portion of non-white participants. 
+
+```{r}
+hiphop_demo <- hiphop %>%
+  distinct(subj,male,sex,female,age,ethnic,white) %>%
+  rowid_to_column()
+
+#sex
+males <- length(which(hiphop_demo$male=='1'))
+females <- length(which(hiphop_demo$female=='1'))       
+
+#age
+summary(hiphop_demo$age)
+
+#ethnic
+summary(hiphop_demo$ethnic)
+nonwhite <- length(which(hiphop_demo$white=="non-white"))
+```
+
+**6.Make at least two plots to display the demographic information of the subjects in this study.**
+
+```{r,warning=FALSE}
+hiphop_demo %>%
+  ggplot(aes(x=rowid,y=age,color=white)) +
+  geom_point() +
+  xlab("Participant Identification Number")+
+  ylab("Age")+
+  scale_color_discrete("Ethnicity")+
+  labs(title="Participant Ages by Ethnicity")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r, warning=FALSE}
+hiphop_demo %>%
+  ggplot(aes(x=ethnic,fill=sex)) +
+  geom_histogram(stat="count") +
+  xlab("Ethnicity") +
+  ylab("Count") +
+  scale_fill_discrete("Sex")+
+  labs(title="Participant Ethnicities by Gender")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+## Part 2: Familiar words
+
+**1. For each demographic group listed below, determine which word(s) in this study was the most and least familiar on average.**
+
+  a. People below the age of 20
+
+*Most Familiar:* The most familiar word for people below the age of 20 was 'off the hook' with a mean familiarity score of 4.423729. 
+```{r}
+a_popwords <- hiphop %>%
+  filter(age<20) %>%
+  group_by(word) %>%
+  summarize(meanfamiliarity=mean(familiarity)) %>%
+  arrange(desc(meanfamiliarity)) %>%
+  top_n(1)
+```
+
+*Least Familiarity:* The least familiar word for people below the age of 20 was 'catch the vapors' with a mean familiarity score of 1.025425. 
+
+```{r}
+a_nonpopwords <- hiphop %>%
+  filter(age<20) %>%
+  group_by(word) %>%
+  summarize(meanfamiliarity=mean(familiarity)) %>%
+  arrange(desc(meanfamiliarity)) %>%
+  top_n(-1)
+```
+
+b. Non-white women
+
+*Most Familiar:* The most familiar word for Non-white women was 'feel me' with a mean familiarity score of 4.192308.
+```{r}
+b_popwords <- hiphop %>%
+  filter(sex=="Female" & white=="non-white") %>%
+  group_by(word) %>%
+  summarize(meanfamiliarity=mean(familiarity)) %>%
+  arrange(desc(meanfamiliarity)) %>%
+  top_n(1)
+```
+
+*Least Familiar:* The least familiar word for non-white women is a 4-way tie between 'break someone out','dukey rope','plex', and 'rollie' with a mean familiarity score of 1 each.
+
+```{r}
+b_nonpopwords <- hiphop %>%
+  filter(sex=="Female" & white=="non-white") %>%
+  group_by(word) %>%
+  summarize(meanfamiliarity=mean(familiarity)) %>%
+  arrange(desc(meanfamiliarity)) %>%
+  top_n(-1)
+```
+
+c. White men above the age of 30
+
+*Most Familiar:* The most familiar word for white men above the age of 30 was '5-0' with a mean familiarity score of 4.2.
+```{r}
+c_popwords <- hiphop %>%
+  filter(c(age>30 & sex=="Male" & ethnic=="white")) %>%
+  group_by(word) %>%
+  summarize(meanfamiliarity=mean(familiarity)) %>%
+  arrange(desc(meanfamiliarity)) %>%
+  top_n(1)
+```
+
+*Least Familiar:* There is a 25-way tie for least familiar words for men over the age of 30, each with a mean familiarity score of 1. 
+
+```{r}
+c_nonpopwords <- hiphop %>%
+  filter(age>30,sex=='Male',ethnic=='white') %>%
+  group_by(word) %>%
+  summarize(meanfamiliarity=mean(familiarity)) %>%
+  arrange(desc(meanfamiliarity)) %>%
+  top_n(-1)
+```
+
+## Part 3: Use the Data
+
+**1. Aubrey hopes that his songs will be percieved as authentically hiphop. He hopes his lyrics will be recognizeable to those who describe themselves as hiphop fans, but less recognizeable to those who do not consider themselves fans. Suggest some words or phrases that Aubrey should try to use, and some words he should avoid.**
+
+*Process:* In looking at the summary statistics on the 'hip hop' variable, the range of artists listed by participants ranges from 0-10 with a mean of 2 artists (rounded). For our purposes, 'hip hop fans' will be those who listed 2 or more artists; that is, more artists than the average participant. 'Non hip hop fans' will be those who listed less than 2 artists.
+
+*Words to Use:* In comparing the top 10 familiar words between hip hop fans and non-hip hop fans (using an anti join), 3 words ranked in the top 10 of hip hop fans but not in the top 10 of non hip hop fans: **finna, ashy, and 5-0**. Aubrey should try to use these words so his lyrics will be recognizable to hip hop fans and less so to non hip hop fans. 
+
+*Words to avoid:* In comparing the bottom 10 familiar words between hip hop fans and non-hip hop fans (using a left join), 7 words ranked in the bottom 10 of both hip hop fans and non fans. 3 words ranked in the bottom 10 of just hip hop fans, for a total of 10 recommended words to avoid: **grip grain, face gator, dollar cab, saditty, rollie, catch the vapors, break someone out, humming, The Nation, and domino**. If a word is not recognizable by fans and non-fans alike (but especially to fans), it shouldn't be used.
+
+```{r, results = 'HIDE'}
+summary(hiphop$hiphop)
+```
+```{r}
+hhfans <- hiphop %>%
+  filter(hiphop>=2) %>%
+  group_by(word) %>%
+  summarize(meanfamiliarity=mean(familiarity)) %>%
+  arrange(desc(meanfamiliarity)) %>%
+  top_n(10)
+
+nonhhfans <- hiphop %>%
+  filter(hiphop<2) %>%
+  group_by(word) %>%
+  summarize(meanfamiliarity=mean(familiarity)) %>%
+  arrange(desc(meanfamiliarity)) %>%
+  top_n(10)
+
+wordstouse <- anti_join(hhfans,nonhhfans,by="word")
+
+hhfans <- hiphop %>%
+  filter(hiphop>=2) %>%
+  group_by(word) %>%
+  summarize(meanfamiliarity=mean(familiarity)) %>%
+  arrange(desc(meanfamiliarity)) %>%
+  top_n(-10)
+
+nonhhfans <- hiphop %>%
+  filter(hiphop<2) %>%
+  group_by(word) %>%
+  summarize(meanfamiliarity=mean(familiarity)) %>%
+  arrange(desc(meanfamiliarity)) %>%
+  top_n(-10)
+
+wordstoavoid <- left_join(hhfans,nonhhfans,by="word")
+```
+
+**2. Although Aubrey wants to be authentic, he also hopes to sell records, of course. Two titles have been suggested for his first album: “Hotline Boo” or “Hella Bling”. Based on the dataset, which will appeal more to the higher population areas? Make at least one plot to support your answer.**
+
+*Process:* In looking at the 'city' and 'county' population variables, I decided to divide them both into 2 catagories: small and large, based on their respective variables' quartiles. 
+
+*Results:* In comparing the mean familiarity scores between the "boo" and "hella" words among large and extra large cities, "boo" had a smaller familiarity score than "hella".
+
+*Word to Use:* Since hella had a larger familiarity score among the highest city and county populations, Aubrey should use the "Hella Bling" album title. 
+
+```{r}
+quantile(hiphop$city)
+quantile(hiphop$county)
+
+hiphop$largecity <- ifelse(hiphop$city >= 42322, "large", "small")
+hiphop$largecounty <- ifelse(hiphop$county >= 331582, "large", "small")
+
+albumtitle <- hiphop %>%
+  filter(word==c("boo","hella"),largecity== "large",largecounty=="large") %>%
+  group_by(word) %>%
+  summarize(mean_fam=mean(familiarity))
+
+albumtitle %>%
+  ggplot(aes(x=word, y=mean_fam))+
+  geom_col()+
+  xlab("Word") +
+  ylab("Mean Familiarity") +
+  labs(title="Word Familiarity Among Larger Cities & Counties")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+**3. Aubrey’s true life dream is to collaborate with his fellow Canadian musician Justin Bieber. Luckily, he knows that Bieber himself was one of the subjects in this study! You know that Bieber is a white male, aged 17-23 at the time of the study, from a relatively small town (10,000-60,000 people) in Ontario. Determine which subject is secretly Bieber, and justify your answer.**
+
+**Participant #17** is secretly Justin Bieber. This subject's demographics align with the ones provided, and this subject scored a 7 in the Bieber category (only subject to do so, as the maximum score listed in the study description was a 6) since he is clearly familiar with his own music. 
+
+```{r}
+jb<- hiphop %>%
+  filter(white=="white",sex=="Male",age>=17 & age<=23,city>10000 & city<60000, bieber==7) %>%
+  group_by(subj)
+```
+
+

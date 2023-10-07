@@ -1,0 +1,114 @@
+---
+title: "Exploration of Cereal Data"
+author: Jen McGregor
+output:
+  html_document: default
+  pdf_document: default
+---
+## Setup
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+library(tidyverse)
+```
+
+
+## The Data
+
+```{r read_data}
+cereals <- read_csv("https://www.dropbox.com/s/ll2c9drmlom1ony/cereals.csv?dl=1")
+```
+
+Documentation for dataset: https://www.kaggle.com/crawford/80-cereals/version/2
+
+```{r check_data, eval = FALSE}
+#### Edit this code to examine your dataset
+cereals %>%
+summary()
+```
+The data set has 16 variables (before adding cal_per_cup later). 
+
+## Data Cleaning and Transformation
+
+```{r}
+#### clean the data
+cereals %>%
+  drop_na()
+```
+
+
+```{r summarize}
+#### Write code to show the mean and median and sd of sugar content per serving of all cereals
+cereals %>%
+  summarize(across(c(sugars), list(mean,median,sd)))
+
+```
+
+```{r summarize2}
+#### Write code to show the total calories of all cereals
+cereals %>%
+  summarize(sum(calories))
+```
+
+
+```{r mutate}
+#### Write code to create the variable "cal_per_cup" here
+cereals <- cereals %>%
+  mutate(cal_per_cup=calories/cups)
+
+cereals %>%
+  summarize(cal_per_cup)
+```
+
+```{r filter_select,error=TRUE}
+#### Write code to include only Kellogg brand cereals, and only relevant columns
+cereals %>%
+  select(name,mfr,cal_per_cup)
+  filter(mfr=='K')
+```
+
+
+```{r arrange}
+#### Write code to sort the dataset by calories per cup
+cereals %>%
+  arrange(cal_per_cup)
+```
+
+```{r wrangle}
+
+#### Combine all steps into one pipeline
+Kelloggs <- cereals %>%
+  mutate(cal_per_cup=calories/cups) %>%
+  select(name,mfr,cal_per_cup) %>%
+  filter(mfr=='K') %>%
+  arrange(desc(cal_per_cup))
+plot_layout(ncol=1)
+```
+
+```{r}
+###long join
+
+cereals_longer <- cereals %>%
+  select(name, mfr, protein, sugars) %>%
+  pivot_longer(protein:sugars,
+               names_to = "Nutrient",
+               values_to = "Amount")
+
+
+## Visualizing the data
+#### Make a plot
+
+cereals_longer %>%
+  ggplot(aes(x = mfr, y = Amount, fill = Nutrient)) +
+  geom_boxplot()
+```
+
+
+
+## Conclusion
+
+I learned that certain manufacturers have wide spreads of sugars within their cereals while other manufacturers do not as wide of spreads of sugars. For the most part, spread of protein seems to be less in cereals than spread of sugars. 

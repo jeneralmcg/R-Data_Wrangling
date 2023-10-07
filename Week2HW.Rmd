@@ -1,0 +1,148 @@
+---
+title: "Week2HW"
+author: "Jen McGregor"
+date: "1/10/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+```
+
+# 1
+The file Basketball.txt contains some statistics on professional basketball players. These fields are a fixed-width format so use the function read.fwf to read the file (hint: check out the argument widths). Use the function str to display the structure.
+
+```{r}
+data=read.fwf("basketball.txt",widths=c(15,4,4,2,3,5,5,4))
+str(data)
+```
+
+# 2 
+The file SharkAttacks.csv contains the number of shark attacks for various decades. The file SharkFatalities.csv contains the percentage of shark attacks which are fatal for various decades.
+
+### a. Read the file for the attack records. Specify the appropriate argument to identify the missing value(s).
+
+```{r}
+attacks = read.csv(file="SharkAttacks.csv", header=TRUE,na.strings=c("-1"));
+```
+
+### b. Read the file for the fatality records. Specify the appropriate argument to identify the missing value(s).
+
+```{r}
+fatality= read.csv(file="SharkFatalities.csv", header=TRUE,na.strings=c("*"));
+```
+
+### c. Merge these two files together with a full outer join.
+
+```{r}
+fatality$Decade <- fatality$Years
+merge = merge(x=attacks, y=fatality, by="Decade", all=TRUE)
+```
+
+### d. remove any rows with missing values
+
+```{r}
+merge = na.omit(merge);
+```
+
+# 3
+
+The file classData.Rdata contains a number of data frames for various classes that I teach.
+
+### a. load the workspace 
+```{r}
+load("classData.Rdata");
+```
+
+### b. How many data frames does the workspace have?
+
+```{r}
+ls()
+#answer is 124 (not including the 4 we loaded to the WS before)
+```
+### c. How many rows and columns are in each of the following data frames: amtrak, bankLoss, gasOil, kickstarter?
+```{r}
+dim(accountsRec)
+dim(customerChurn)
+dim(fastFood)
+dim(saratoga)
+dim(kickstarter)
+```
+# 4 
+
+Quantitative finance involves a lot of data management and statistics. This exercise walks you through the process of obtaining and managing stock/Libor data, and using that information to create a CAPM model based on daily log returns adjusted by a risk-free interest rate. Do not use any iteration on this problem, everything can be done with vectorized operations.
+
+### a. This is a link to the adjusted closing levels of the S&P500 (SPX). Copy and paste the link. Use the link to read the CSV file directly from Yahoo! Finance (ie don’t download and read the file locally).
+
+```{r}
+SPX= read.csv("https://query1.finance.yahoo.com/v7/finance/download/%5EGSPC?period1=1262563200&period2=1609718400&interval=1d&events=history&includeAdjustedClose=true")
+```
+
+### b. This is a link to the adjusted closing prices of Lockhead Martin (LMT). Copy and paste the link. Use the link to read the CSV file directly from Yahoo! Finance (ie don’t download and read the file locally).
+```{r}
+LMT= read.csv("https://query1.finance.yahoo.com/v7/finance/download/LMT?period1=1104796800&period2=1609286400&interval=1d&events=history&includeAdjustedClose=true")
+```
+
+### c. Merge these two data frames together by the date with a natural join.
+
+```{r}
+merge = merge(x=SPX, y=LMT, by="Date", all=FALSE);
+```
+
+### d. For both SPX and LMT, create log returns given by formula where P is the adjusted closing price at time t. Create a new data frame that contains the dates and the log returns.
+
+```{r}
+#change names of variables for ease in calculations
+names(merge)[6] = "SPX_Adj.close";
+names(merge)[12] = "LMT_Adj.close";
+#calculate log returns 
+merge$SPX_LogReturns <- log((merge$SPX_Adj.close)/lag(merge$SPX_Adj.close))*100
+merge$LMT_LogReturns <- log((merge$LMT_Adj.close)/lag(merge$LMT_Adj.close))*100
+#create new DF
+new_df <- merge[c(1,14:15)]
+```
+
+### e. The file USDONTD156N.xlsx contains Libor rates (the risk-free interest rate we will use). Read this file.
+
+```{r}
+#read in file
+library(openxlsx);
+myData = read.xlsx(xlsxFile="USDONTD156N.xlsx",detectDates = TRUE);
+#remove first 8 rows because it's a heading
+myData<-myData[-(1:8),]
+#rename columns
+names(myData)[1]="Date"
+names(myData)[2]="Libor_Rates"
+#Make Libor Rates numeric
+myData$Libor_Rates <- as.numeric(myData$Libor_Rates)
+```
+
+### f. Merge the data frame with the log returns and the Libor rates by date with a natural join. Remove any missing values.
+
+```{r}
+#merge data
+merge_partf = merge(x=new_df, y=myData, by="Date", all=FALSE);
+#remove missing values
+merge_partf = na.omit(merge_partf);
+```
+
+
+### g. Subtract the Libor rate from the log returns of SPX and then also LMT (this creates log-adjusted returns, adjusted by the risk-free rate of Libor).
+
+```{r}
+merge_partf$RF_Libor_SPX <- merge_partf$SPX_LogReturns-merge_partf$Libor_Rates
+merge_partf$RF_Libor_LMT <- merge_partf$LMT_LogReturns-merge_partf$Libor_Rates
+```
+
+### h. Find the correlation between the SPX and LMT log-adjusted returns. Fit a regression model that uses the SPX log adjusted returns to predict the LMT log-adjusted returns. Hint: use the function lm. Look at a summary of the model object. The intercept and slope of the estimated model are kinda close to the alpha and beta of LMT (based on daily data and not monthly).
+
+```{r}
+# Calculate Correlation
+cor(merge_partf$SPX_LogReturns,merge_partf$LMT_LogReturns)
+# Fit regression model
+model <- lm(LMT_LogReturns~SPX_LogReturns,data=merge_partf)
+summary(model)
+?plot()
+```
+
