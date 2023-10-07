@@ -1,0 +1,100 @@
+---
+title: "Week3HW"
+author: "Jen McGregor"
+date: "1/20/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+```
+
+# 1 Obtain counts and proportions for the categories (not the subcategories).
+
+```{r}
+#base
+table(kickstarter$category);
+prop.table(table(kickstarter$category));  
+#tidy
+kickstarter%>%
+  group_by(category)%>%
+  summarize(n=n())
+
+kickstarter%>%
+  group_by(category)%>%
+  summarize(n=n())%>%
+  mutate(prop=count/sum(count))
+```
+
+# 2 Create a contingency table for the categories by funding status. Find sample proportions for the status conditional on the category.
+```{r}
+#base
+table(kickstarter$category, kickstarter$status);
+prop.table(table(kickstarter$category, kickstarter$status), margin=1);
+#tidy
+kickstarter%>%
+  group_by(category,status)%>%
+  summarize(n=n())
+```
+
+# 3 Obtain summary statistics for the following variables: funded percentage, updates, and duration.
+
+```{r}
+#base
+apply(kickstarter[,c("funded_percentage", "updates","duration")],2,mean);
+#tidy
+kickstarter %>%
+  summarize(mean_FP=mean(funded_percentage),mean_UP=mean(updates),mean_D=mean(duration))
+kickstarter %>%
+  summarize(median_FP=median(funded_percentage),median_UP=median(updates),median_D=median(duration))
+kickstarter %>%
+  summarize(sd_FP=sd(funded_percentage),sd_UP=sd(updates),sd_D=sd(duration))
+kickstarter %>%
+  summarize(length_FP=length(funded_percentage),length_UP=length(updates),length_D=length(duration))
+```
+# 4 obtain summary statistics for the funded percentage by category.
+```{r}
+#base
+tapply(kickstarter$funded_percentage, kickstarter$category, mean);
+tapply(kickstarter$funded_percentage, kickstarter$category, median);
+tapply(kickstarter$funded_percentage, kickstarter$category, sd);
+tapply(kickstarter$funded_percentage, kickstarter$category, length);
+#tidy
+kickstarter%>%
+  group_by(category)%>%
+  summarize(mean_FP=mean(funded_percentage))
+```
+
+# 5  obtain summary statistics for the funded percentage by category and status.
+```{r}
+#base
+tapply(kickstarter$funded_percentage, list(kickstarter$category, kickstarter$status), mean);
+#tidy
+kickstarter%>%
+  group_by(category,status)%>%
+  summarize(mean_FP=mean(funded_percentage))
+```
+# 6 Find the correlation between the funded percentage and updates.
+```{r}
+#base
+cor(kickstarter$funded_percentage,kickstarter$updates)
+#tidy
+kickstarter%>%
+  summarise(correlation=cor(funded_percentage,updates))
+```
+# 7 Find the correlation between the funded percentage and updates by category and status. Only do this using tidy functionality.
+```{r}
+kickstarter%>%
+  group_by(category,status)%>%
+  summarise(correlation=cor(funded_percentage,updates))
+kickstarter %>% group_by(category,status) %>% summarize(cor(funded_percentage,updates));
+```
+
+```{r}
+?boxplot
+rb <- boxplot(decrease ~ treatment, data = OrchardSprays, col = "bisque")
+summary(rb)
+title("Comparing boxplot()s and non-robust mean +/- SD")
+```
